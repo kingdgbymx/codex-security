@@ -67,7 +67,7 @@ node sdk/typescript/bin/codex-security.mjs scan . --auth api-key \
 
 #### 便捷脚本 `cs-scan`（推荐）
 
-本机已封装一键扫描脚本 `/usr/local/bin/cs-scan`，密钥存于 `~/.config/codex-security/env`（权限 600），之后无需再拼参数：
+仓库自带一键扫描脚本 `scripts/cs-scan`（安装到本机：`ln -sf $(pwd)/scripts/cs-scan /usr/local/bin/cs-scan`），密钥存于 `~/.config/codex-security/env`（权限 600），之后无需再拼参数：
 
 ```bash
 # 一次性配置

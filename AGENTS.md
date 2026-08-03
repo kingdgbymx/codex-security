@@ -53,7 +53,7 @@ node sdk/typescript/bin/codex-security.mjs scan <repo> --auth api-key \
 
 ### 便捷脚本 cs-scan（本机已安装）
 
-`/usr/local/bin/cs-scan` 封装了上述参数（密钥读 `~/.config/codex-security/env`，600 权限），支持三种模式：
+`scripts/cs-scan` 封装了上述参数（密钥读 `~/.config/codex-security/env`，600 权限；安装：`ln -sf $(pwd)/scripts/cs-scan /usr/local/bin/cs-scan`），支持三种模式：
 
 ```bash
 cs-scan <repo>                 # 全仓库扫描（默认 --effort high）

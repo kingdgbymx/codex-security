@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# 一键扫描 (DeepSeek): 
+#   cs-scan <repo> [参数...]                     全仓库扫描 (默认 effort=high)
+#   cs-scan diff <repo> <baseRef> [headRef]      diff 扫描 (baseRef..headRef, headRef 默认 HEAD)
+#   cs-scan worktree <repo>                     未提交工作区改动扫描
+# 密钥来源: 环境变量 DEEPSEEK_API_KEY，或 ~/.config/codex-security/env
+set -euo pipefail
+
+ENV_FILE="${CODEX_SECURITY_ENV_FILE:-$HOME/.config/codex-security/env}"
+if [[ -z "${DEEPSEEK_API_KEY:-}" && -f "$ENV_FILE" ]]; then
+  source "$ENV_FILE"
+fi
+export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:?未找到 DEEPSEEK_API_KEY，请 export 或写入 $ENV_FILE}"
+export CODEX_API_KEY="${CODEX_API_KEY:-sk-placeholder}"
+
+# CLI 路径: CODEX_SECURITY_CLI 环境变量 > 仓库内置脚本 > PATH
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+if [[ -n "${CODEX_SECURITY_CLI:-}" ]]; then
+  CLI=$CODEX_SECURITY_CLI
+elif [[ -x "$SCRIPT_DIR/../sdk/typescript/bin/codex-security.mjs" ]]; then
+  CLI="$SCRIPT_DIR/../sdk/typescript/bin/codex-security.mjs"
+else
+  CLI=$(command -v codex-security || true)
+fi
+[[ -n "$CLI" ]] || { echo "找不到 codex-security CLI（设 CODEX_SECURITY_CLI 或安装依赖）" >&2; exit 1; }
+PROVIDER_ARGS=(
+  --codex 'model_provider="deepseek"'
+  --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"'
+  --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
+)
+
+MODE=scan
+case "${1:-}" in
+  diff|worktree)
+    MODE=$1
+    shift
+    ;;
+esac
+
+REPO=${1:-.}
+shift || true
+EXTRA=("$@")
+
+# 用户未显式指定 model/effort 时使用默认
+HAS_MODEL=false; HAS_EFFORT=false
+for a in "${EXTRA[@]}"; do
+  case "$a" in --model=*|--model|--effort=*|--effort) HAS_MODEL=true; HAS_EFFORT=true;; esac
+done
+DEFAULTS=()
+[[ "$HAS_MODEL" == false ]] && DEFAULTS+=(--model deepseek-v4-flash)
+[[ "$HAS_EFFORT" == false ]] && DEFAULTS+=(--effort high)
+
+case "$MODE" in
+  diff)
+    [[ ${#EXTRA[@]} -ge 1 && "${EXTRA[0]}" != -* ]] || { echo "用法: cs-scan diff <repo> <baseRef> [headRef]" >&2; exit 1; }
+    BASE=${EXTRA[0]}
+    EXTRA=("${EXTRA[@]:1}")
+    if [[ ${#EXTRA[@]} -ge 1 && "${EXTRA[0]}" != -* ]]; then
+      HEAD=${EXTRA[0]}
+      EXTRA=("${EXTRA[@]:1}")
+    else
+      HEAD=HEAD
+    fi
+    exec node "$CLI" scan "$REPO" --auth api-key "${DEFAULTS[@]}" --diff "$BASE" --head "$HEAD" "${PROVIDER_ARGS[@]}" "${EXTRA[@]}"
+    ;;
+  worktree)
+    exec node "$CLI" scan "$REPO" --auth api-key "${DEFAULTS[@]}" --working-tree "${PROVIDER_ARGS[@]}" "${EXTRA[@]}"
+    ;;
+  *)
+    exec node "$CLI" scan "$REPO" --auth api-key "${DEFAULTS[@]}" "${PROVIDER_ARGS[@]}" "${EXTRA[@]}"
+    ;;
+esac
