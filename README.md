@@ -1,6 +1,8 @@
 # Codex Security（中文版）
 
 > 基于 [openai/codex-security](https://github.com/openai/codex-security) v0.1.5（commit `a8fc009`）的本地镜像，集成 **DeepSeek 模型支持** 与 **Linux 沙箱兼容补丁**，已实测可用。
+>
+> English: [README.en.md](README.en.md)（上游原版）
 
 `codex-security` 是一个 CLI 与 TypeScript SDK，用于查找、验证并修复代码中的安全漏洞。扫描由多智能体 Codex 运行时驱动，支持威胁建模、攻击路径分析、漏洞分级、修复建议与结果追踪。
 
