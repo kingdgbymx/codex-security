@@ -137,6 +137,7 @@ Dockerfile / compose.yaml 已做加固：`cap_drop: ALL`、seccomp 限制、非 
 ```
 ├── Dockerfile / compose.yaml      # 容器化批量扫描
 ├── docker/                        # seccomp、AppArmor、entrypoint、git 凭证
+├── scripts/cs-scan                # 一键扫描脚本（DeepSeek，全仓库/diff/worktree）
 ├── sdk/typescript/
 │   ├── src/                       # CLI + SDK 源码（cli.ts ~3.4k 行）
 │   ├── _bundled_plugin/           # 随包插件：15 个技能 + Python workbench + MCP server

@@ -83,5 +83,6 @@ cs-scan worktree <repo>        # 未提交工作区改动
 |------|------|
 | `README.md` | 中文使用文档（含 DeepSeek 集成、补丁说明） |
 | `SECURITY.md` | 上游安全策略原文 |
+| `scripts/cs-scan` | 一键扫描脚本（本机安装源，改扫描参数默认值主要动这里） |
 | `sdk/typescript/_bundled_plugin/skills/` | 扫描技能定义（改扫描行为主要动这里） |
 | `docker/` | 容器加固（seccomp/AppArmor/entrypoint） |
