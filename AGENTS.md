@@ -1,0 +1,72 @@
+# AGENTS.md
+
+本仓库是 openai/codex-security v0.1.5（commit `a8fc009`）的本地镜像，含 DeepSeek 模型集成配置与 Linux 沙箱补丁。维护时遵守以下约定。
+
+## 项目定位
+
+- CLI + TypeScript SDK：多智能体 AI 安全扫描（威胁建模 → 发现 → 验证 → 攻击路径 → 修复）
+- 扫描由捆绑的 Codex 运行时驱动（`@openai/codex` v0.144.6，二进制随 npm 包分发）
+- 插件系统：`sdk/typescript/_bundled_plugin/skills/` 下 15 个技能 + Python workbench
+
+## 构建与测试
+
+```bash
+cd sdk/typescript
+pnpm install --frozen-lockfile
+pnpm run build      # clean + tsc 编译到 dist/
+pnpm run types      # 模型 schema 校验 + tsc --noEmit
+pnpm run lint       # tsc --noEmit（同 types 的类型检查部分）
+pnpm test           # bun test（需要 bun，可选）
+```
+
+- Node 要求 ^22.13 || ^24 || ^26；Python 3.10+（扫描时调用插件 Python 脚本）
+- pnpm 版本锁定 11.9.0（package.json `packageManager`）
+
+## 网络与镜像（重要）
+
+- npmjs 直连/走代理常被 TLS 重置：pnpm 使用 `https://registry.npmmirror.com`
+- 大包（`@openai/codex-linux-x64` ≈131MB）走 npmmirror CDN 很快
+- 配置写入用户级 `~/.npmrc`，**不要**提交项目 `.npmrc`
+- GitHub 直连超时用 HTTP 代理 `http://121.41.47.146:10809` + `-c http.version=HTTP/1.1`
+
+## 本地补丁（勿随意回退）
+
+**位置**：
+- `sdk/typescript/src/runtime.ts`：新增 `codexSecurityTemporaryRoot()`（返回 `~/.codex-security-runtime`）
+- `sdk/typescript/src/api.ts`：2 处 `temporaryRoot` 解析改用它
+
+**原因**：Codex 0.144.6 拒绝在系统临时目录（/tmp）下的 `CODEX_HOME` 创建 `codex-linux-sandbox` 别名；官方版本在 Linux + API Key 模式下扫描必失败。补丁把隔离 home 移到 `$HOME` 下。
+
+**验证**：`scan` 必须能跑完并产出 findings.json；若回归，先检查隔离 home 是否又落在 /tmp。
+
+## 运行扫描（DeepSeek，无需登录）
+
+```bash
+export DEEPSEEK_API_KEY=<你的密钥>
+export CODEX_API_KEY=<占位非空值>
+node sdk/typescript/bin/codex-security.mjs scan <repo> --auth api-key \
+  --model deepseek-v4-flash --effort low \
+  --codex 'model_provider="deepseek"' \
+  --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"' \
+  --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
+```
+
+配置要点（踩坑记录）：
+- 必须设顶层 `model_provider`，否则请求打到 `api.openai.com`
+- 密钥字段为 `env_key`（非 `api_key_env_var`）
+- 模型名不带 provider 前缀
+
+## 安全约定
+
+- **禁止**提交任何密钥/token（含环境变量值）；README/文档用占位符
+- 扫描输出（state 目录、results/）已被 .gitignore 排除，勿强加
+- 漏洞报告走上游 Bugcrowd，不在本仓库开 issue 贴 PoC
+
+## 相关文件
+
+| 文件 | 说明 |
+|------|------|
+| `README.md` | 中文使用文档（含 DeepSeek 集成、补丁说明） |
+| `SECURITY.md` | 上游安全策略原文 |
+| `sdk/typescript/_bundled_plugin/skills/` | 扫描技能定义（改扫描行为主要动这里） |
+| `docker/` | 容器加固（seccomp/AppArmor/entrypoint） |

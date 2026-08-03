@@ -1,6 +1,6 @@
 import { execFile as execFileCallback } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { constants, existsSync, type Stats } from "node:fs";
+import { constants, existsSync, mkdirSync, type Stats } from "node:fs";
 import {
   chmod,
   copyFile,
@@ -19,7 +19,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import {
   basename,
@@ -767,10 +767,16 @@ export function requireModelSafeOutputDir(path: string): void {
   }
 }
 
+export function codexSecurityTemporaryRoot(): string {
+  const root = join(homedir(), ".codex-security-runtime");
+  mkdirSync(root, { recursive: true, mode: 0o700 });
+  return root;
+}
+
 export async function prepareOutputDir(
   outputDirectory: string | undefined,
   repositoryName: string,
-  temporaryRoot: string = tmpdir(),
+  temporaryRoot: string = codexSecurityTemporaryRoot(),
   validateLocation?: (path: string) => void,
   archiveExisting = false,
   onOutputArchived?: (archiveDir: string) => void,
@@ -955,7 +961,7 @@ async function removeEmptyDirectories(
 }
 
 export async function createIsolatedHome(
-  temporaryRoot: string = tmpdir(),
+  temporaryRoot: string = codexSecurityTemporaryRoot(),
   validateLocation?: (path: string) => void,
 ): Promise<string> {
   const path = await mkdtemp(

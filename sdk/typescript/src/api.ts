@@ -10,7 +10,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 import { Codex, type CodexOptions } from "@openai/codex-sdk";
 import {
@@ -67,6 +67,7 @@ import {
   codexSecurityCredentialAllowsAmbientImport,
   codexSecurityHasStoredFileCredentials,
   codexSecurityStateDirectory,
+  codexSecurityTemporaryRoot,
   createIsolatedHome,
   importAmbientAuth,
   prepareCodexSecurityCredentialHome,
@@ -293,7 +294,7 @@ export class CodexSecurity {
     );
     requireOutputOutsideRepository(
       inputs.protectedRoot,
-      await realpath(tmpdir()),
+      await realpath(codexSecurityTemporaryRoot()),
       "temporary",
     );
     const configuration = await mergedCodexConfig(this.config);
@@ -371,7 +372,7 @@ export class CodexSecurity {
         this.#runtime === null ||
         options.knowledgeBasePaths?.length
       ) {
-        temporaryRoot = await realpath(tmpdir());
+        temporaryRoot = await realpath(codexSecurityTemporaryRoot());
         requireOutputOutsideRepository(
           protectedRoot,
           temporaryRoot,
