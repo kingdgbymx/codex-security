@@ -59,10 +59,33 @@ export CODEX_API_KEY=sk-占位            # 仅用于认证流程，任意非空
 
 node sdk/typescript/bin/codex-security.mjs scan . --auth api-key \
   --model deepseek-v4-flash \
-  --effort low \
+  --effort high \
   --codex 'model_provider="deepseek"' \
   --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"' \
   --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
+```
+
+#### 便捷脚本 `cs-scan`（推荐）
+
+本机已封装一键扫描脚本 `/usr/local/bin/cs-scan`，密钥存于 `~/.config/codex-security/env`（权限 600），之后无需再拼参数：
+
+```bash
+# 一次性配置
+echo 'DEEPSEEK_API_KEY=sk-你的密钥' > ~/.config/codex-security/env && chmod 600 ~/.config/codex-security/env
+
+# 全仓库扫描（默认 --effort high）
+cs-scan .                          # 或 cs-scan /path/to/repo
+
+# 单个提交 diff 扫描
+cs-scan diff . HEAD~1              # 最近一个提交
+cs-scan diff . <commit>            # 指定提交（相对 HEAD）
+cs-scan diff . main feature        # baseRef..headRef 区间
+
+# 未提交的工作区改动
+cs-scan worktree .
+
+# 覆盖默认（用户显式传参优先）
+cs-scan . --effort medium
 ```
 
 实测结果（示例仓库）：8 分钟完成，正确发现 SQL 注入（CWE-89），覆盖率 complete，报告完整（威胁模型 + 根因 + 修复建议）。
@@ -71,6 +94,7 @@ node sdk/typescript/bin/codex-security.mjs scan . --auth api-key \
 - 必须设置顶层 `model_provider = "deepseek"`，仅设 `model_providers` 无效（请求会打到 `api.openai.com`）
 - 密钥字段名是 `env_key`（不是 `api_key_env_var`）
 - DeepSeek 模型名不带 provider 前缀，如 `deepseek-v4-flash`
+- 环境变量：`DEEPSEEK_API_KEY` 必须为真实密钥；`CODEX_API_KEY` 仅作认证门槛，任意非空值即可
 
 ### TypeScript SDK
 

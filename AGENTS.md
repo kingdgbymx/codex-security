@@ -45,16 +45,31 @@ pnpm test           # bun test（需要 bun，可选）
 export DEEPSEEK_API_KEY=<你的密钥>
 export CODEX_API_KEY=<占位非空值>
 node sdk/typescript/bin/codex-security.mjs scan <repo> --auth api-key \
-  --model deepseek-v4-flash --effort low \
+  --model deepseek-v4-flash --effort high \
   --codex 'model_provider="deepseek"' \
   --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"' \
   --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
 ```
 
+### 便捷脚本 cs-scan（本机已安装）
+
+`/usr/local/bin/cs-scan` 封装了上述参数（密钥读 `~/.config/codex-security/env`，600 权限），支持三种模式：
+
+```bash
+cs-scan <repo>                 # 全仓库扫描（默认 --effort high）
+cs-scan diff <repo> <base> [head]   # 提交 diff 扫描（head 默认 HEAD）
+cs-scan worktree <repo>        # 未提交工作区改动
+```
+
+- 用户显式传 `--model`/`--effort` 时以用户为准
+- diff 模式的额外参数（如 `--effort medium`）传透给 CLI
+
 配置要点（踩坑记录）：
 - 必须设顶层 `model_provider`，否则请求打到 `api.openai.com`
 - 密钥字段为 `env_key`（非 `api_key_env_var`）
 - 模型名不带 provider 前缀
+- `DEEPSEEK_API_KEY` 必须为真实密钥；`CODEX_API_KEY` 仅作认证门槛（任意非空值）
+- effort 默认 high（官方默认 xhigh；low 更省 token，实测可完成扫描）
 
 ## 安全约定
 
