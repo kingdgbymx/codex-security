@@ -78,9 +78,10 @@ echo 'DEEPSEEK_API_KEY=sk-你的密钥' > ~/.config/codex-security/env && chmod 
 cs-scan .                          # 或 cs-scan /path/to/repo
 
 # 单个提交 diff 扫描
-cs-scan diff . HEAD~1              # 最近一个提交
-cs-scan diff . <commit>            # 指定提交（相对 HEAD）
-cs-scan diff . main feature        # baseRef..headRef 区间
+cs-scan diff . HEAD~1              # 最近一个提交的改动（HEAD~1..HEAD）
+cs-scan diff . <commit>            # commit..HEAD 区间（该提交之后的所有改动）
+cs-scan diff . <commit>~1 <commit> # 仅单个提交本身的改动
+cs-scan diff . main feature        # baseRef..headRef 任意区间
 
 # 未提交的工作区改动
 cs-scan worktree .
