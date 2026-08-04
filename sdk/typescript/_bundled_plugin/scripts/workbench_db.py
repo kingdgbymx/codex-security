@@ -106,6 +106,7 @@ from workbench_target import (
     require_remediation_target,
     require_scan_target_identity,
     scan_target_warning,
+    range_diff_content_digest,
     worktree_content_digest,
     worktree_content_digest_for_context,
 )
@@ -582,7 +583,7 @@ def workbench_completion_binding(scan: sqlite3.Row, completed_at: str) -> dict[s
     if scan["mode"] == "diff":
         target["baseRevision"] = scan["diff_base_revision"]
         target["headRevision"] = scan["diff_head_revision"]
-        if scan["diff_target_kind"] == "working_tree" and scan["diff_content_digest"]:
+        if scan["diff_content_digest"]:
             target["snapshotDigest"] = scan["diff_content_digest"]
     else:
         if scan["target_revision"] != "unversioned":
@@ -1560,6 +1561,10 @@ def register_cli_scan(connection: sqlite3.Connection, args: argparse.Namespace) 
             if head != current_head:
                 raise SystemExit("Working-tree HEAD changed before the scan started.")
             diff_target["contentDigest"] = worktree_content_digest(repository)
+        elif requested_target["kind"] == "refs":
+            diff_target["contentDigest"] = range_diff_content_digest(
+                repository, base, head
+            )
     mode = "diff" if diff_target is not None else recipe["mode"]
     target_identity = scan_target_identity(repository, diff_target)
     scope_file_count = (

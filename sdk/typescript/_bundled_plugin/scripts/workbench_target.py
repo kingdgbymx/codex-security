@@ -86,6 +86,32 @@ def worktree_content_digest(target: Path) -> str:
     return worktree_content_digest_for_context(repository, pathspec)
 
 
+def range_diff_content_digest(
+    target: Path, base_revision: str, head_revision: str
+) -> str:
+    require_clean_submodule_worktrees(target)
+    repository, pathspec = git_worktree_context(target)
+    tracked = git_bytes(
+        repository,
+        "diff",
+        "--binary",
+        "--full-index",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--ignore-submodules=none",
+        base_revision,
+        head_revision,
+        "--",
+        pathspec,
+    )
+    if tracked is None:
+        raise SystemExit("Could not snapshot the selected range diff.")
+    digest = hashlib.sha256()
+    update_digest_field(digest, b"format", b"codex-security-snapshot/v1")
+    update_digest_field(digest, b"range-diff", tracked)
+    return f"codex-security-snapshot/v1:sha256:{digest.hexdigest()}"
+
+
 def worktree_content_digest_for_context(
     repository: Path,
     pathspec: str,

@@ -31,13 +31,19 @@ pnpm test           # bun test（需要 bun，可选）
 
 ## 本地补丁（勿随意回退）
 
-**位置**：
+**补丁 1：隔离运行时目录移出 /tmp**
 - `sdk/typescript/src/runtime.ts`：新增 `codexSecurityTemporaryRoot()`（返回 `~/.codex-security-runtime`）
 - `sdk/typescript/src/api.ts`：2 处 `temporaryRoot` 解析改用它
 
-**原因**：Codex 0.144.6 拒绝在系统临时目录（/tmp）下的 `CODEX_HOME` 创建 `codex-linux-sandbox` 别名；官方版本在 Linux + API Key 模式下扫描必失败。补丁把隔离 home 移到 `$HOME` 下。
+原因：Codex 0.144.6 拒绝在系统临时目录（/tmp）下的 `CODEX_HOME` 创建 `codex-linux-sandbox` 别名；官方版本在 Linux + API Key 模式下扫描必失败。补丁把隔离 home 移到 `$HOME` 下。
 
-**验证**：`scan` 必须能跑完并产出 findings.json；若回归，先检查隔离 home 是否又落在 /tmp。
+**补丁 2：commit/range diff 扫描保存修复**
+- `sdk/typescript/_bundled_plugin/scripts/workbench_target.py`：新增 `range_diff_content_digest()`（哈希 `git diff base..head`，codex-security-snapshot/v1 格式）
+- `sdk/typescript/_bundled_plugin/scripts/workbench_db.py`：`register_cli_scan` 对 `refs` 目标计算并存储 `contentDigest`；`workbench_completion_binding` 的 `snapshotDigest` 填充条件从「仅 working_tree」放宽为「有 digest 即填」
+
+原因：官方版本对 range diff 不存 digest → SDK 不传 `CODEX_SECURITY_TARGET_SNAPSHOT_DIGEST` → `finalize_scan_contract.py` 强制要求 git_diff 必有 snapshotDigest → 契约校验失败，扫描结果无法保存（扫描本身正常）。
+
+**验证**：`scan` 必须能跑完并产出 findings.json；`cs-scan diff <repo> <base>` 必须能保存为 complete 且 manifest 含 sealedAt + snapshotDigest。若回归，先检查隔离 home 是否又落在 /tmp，或 diff 扫描是否缺 digest。
 
 ## 运行扫描（DeepSeek，无需登录）
 
