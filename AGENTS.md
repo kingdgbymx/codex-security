@@ -6,7 +6,7 @@
 
 - CLI + TypeScript SDK：多智能体 AI 安全扫描（威胁建模 → 发现 → 验证 → 攻击路径 → 修复）
 - 扫描由捆绑的 Codex 运行时驱动（`@openai/codex` v0.144.6，二进制随 npm 包分发）
-- 插件系统：`sdk/typescript/_bundled_plugin/skills/` 下 15 个技能 + Python workbench
+- 插件系统：`sdk/typescript/_bundled_plugin/skills/` 下 13 个技能 + Python workbench
 
 ## 构建与测试
 

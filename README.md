@@ -90,7 +90,7 @@ cs-scan worktree .
 cs-scan . --effort medium
 ```
 
-实测结果（示例仓库）：8 分钟完成，正确发现 SQL 注入（CWE-89），覆盖率 complete，报告完整（威胁模型 + 根因 + 修复建议）。
+实测结果（示例仓库，`--effort low`）：约 9 分钟完成，正确发现 SQL 注入（CWE-89），覆盖率 complete，报告完整（威胁模型 + 根因 + 修复建议）。
 
 **关键点**（官方文档易踩的坑）：
 - 必须设置顶层 `model_provider = "deepseek"`，仅设 `model_providers` 无效（请求会打到 `api.openai.com`）
@@ -121,7 +121,7 @@ Dockerfile / compose.yaml 已做加固：`cap_drop: ALL`、seccomp 限制、非 
 
 ## 本地补丁说明
 
-本仓库相对官方版本（`a8fc009`）包含一处必要补丁：
+本仓库相对官方版本（`a8fc009`）包含两处必要补丁：
 
 **问题**：捆绑的 Codex 运行时 0.144.6 新增保护——当 `CODEX_HOME` 位于系统临时目录下时，拒绝创建 `codex-linux-sandbox` 沙箱别名（arg0 软链）。而官方 codex-security 在 API Key 模式下总是把隔离的 `CODEX_HOME` 建在 `os.tmpdir()`（`/tmp`）下，导致沙箱失效、扫描 agent 无法执行任何 shell 命令、扫描必然失败（Linux + API Key 组合下官方版本即挂）。
 
@@ -134,6 +134,17 @@ Dockerfile / compose.yaml 已做加固：`cap_drop: ALL`、seccomp 限制、非 
 
 如需恢复官方行为，回退这两个文件的改动即可。
 
+**补丁 2：commit/range diff 扫描保存修复**
+
+**问题**：官方版本 `register_cli_scan` 只对 `working_tree` 目标计算 `contentDigest`，range（提交区间）diff 不存 digest → SDK 不传 `CODEX_SECURITY_TARGET_SNAPSHOT_DIGEST` → `finalize_scan_contract.py` 强制要求 `git_diff` 必有 `snapshotDigest` → 契约校验失败，扫描结果无法保存（扫描本身正常）。
+
+**修复**：
+
+| 文件 | 改动 |
+|------|------|
+| `sdk/typescript/_bundled_plugin/scripts/workbench_target.py` | 新增 `range_diff_content_digest()`（哈希 `git diff base..head`，codex-security-snapshot/v1 格式） |
+| `sdk/typescript/_bundled_plugin/scripts/workbench_db.py` | `register_cli_scan` 对 `refs` 目标计算并存储 `contentDigest`；`workbench_completion_binding` 的 `snapshotDigest` 填充条件放宽为「有 digest 即填」 |
+
 ## 仓库结构
 
 ```
@@ -142,7 +153,7 @@ Dockerfile / compose.yaml 已做加固：`cap_drop: ALL`、seccomp 限制、非 
 ├── scripts/cs-scan                # 一键扫描脚本（DeepSeek，全仓库/diff/worktree）
 ├── sdk/typescript/
 │   ├── src/                       # CLI + SDK 源码（cli.ts ~3.4k 行）
-│   ├── _bundled_plugin/           # 随包插件：15 个技能 + Python workbench + MCP server
+│   ├── _bundled_plugin/           # 随包插件：13 个技能 + Python workbench + MCP server
 │   │   └── skills/                # threat-model / finding-discovery / validation /
 │   │                              # attack-path-analysis / triage / fix 等
 │   ├── tests-ts/                  # bun 测试
