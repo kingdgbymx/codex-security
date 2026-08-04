@@ -25,6 +25,7 @@ fi
 [[ -n "$CLI" ]] || { echo "找不到 codex-security CLI（设 CODEX_SECURITY_CLI 或安装依赖）" >&2; exit 1; }
 PROVIDER_ARGS=(
   --codex 'model_provider="deepseek"'
+  --codex 'model_providers.deepseek.name="deepseek"'
   --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"'
   --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
 )

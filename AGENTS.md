@@ -47,6 +47,7 @@ export CODEX_API_KEY=<占位非空值>
 node sdk/typescript/bin/codex-security.mjs scan <repo> --auth api-key \
   --model deepseek-v4-flash --effort high \
   --codex 'model_provider="deepseek"' \
+  --codex 'model_providers.deepseek.name="deepseek"' \
   --codex 'model_providers.deepseek.base_url="https://api.deepseek.com"' \
   --codex 'model_providers.deepseek.env_key="DEEPSEEK_API_KEY"'
 ```
